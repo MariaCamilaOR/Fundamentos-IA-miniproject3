@@ -286,7 +286,25 @@ El reporte de clasificación muestra precision, recall y F1-score por clase, per
 
 ## Celda 28: Curvas ROC y AUC
 
-Las curvas ROC (Receiver Operating Characteristic) y el área bajo la curva (AUC) permiten evaluar el desempeño del modelo en clasificación multiclase usando el enfoque One-vs-Rest. El AUC mide la capacidad del modelo para distinguir entre clases, siendo 1.0 el valor perfecto.
+Esta celda explica el propósito de las curvas ROC y AUC para evaluación del modelo.
+
+## Celda 29: Curvas ROC y AUC - Implementación
+
+Genera las curvas ROC (Receiver Operating Characteristic) y calcula el área bajo la curva (AUC) para evaluar el desempeño del modelo en clasificación multiclase usando el enfoque One-vs-Rest.
+
+**Visualización:**
+- Una gráfica única que muestra todas las curvas ROC juntas:
+  - 15 curvas ROC individuales (una por cada Pokémon)
+  - Micro-average ROC (agregación global)
+  - Macro-average ROC (promedio por clase)
+  - Clasificador aleatorio como referencia (línea diagonal)
+
+**Métricas calculadas:**
+- AUC para cada clase individual
+- AUC micro-average (global)
+- AUC macro-average (promedio)
+
+El AUC mide la capacidad del modelo para distinguir entre clases, siendo 1.0 el valor perfecto. Todas las curvas se muestran en una sola gráfica para facilitar la comparación visual del desempeño del modelo.
 
 ---
 
