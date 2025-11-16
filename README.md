@@ -1,4 +1,4 @@
-# Fundamentos-IA-miniproject3
+# Fundamentos-IA-mini proyecto
 
 Mini Proyecto 3 – Clasificación de Pokémon con Transfer Learning (ResNet50)
 
