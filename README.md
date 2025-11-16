@@ -1,4 +1,4 @@
-# Fundamentos-IA-mini proyecto
+# Fundamentos-IA-miniproject3
 
 Mini Proyecto 3 – Clasificación de Pokémon con Transfer Learning (ResNet50)
 
@@ -31,7 +31,6 @@ El proyecto utiliza métricas apropiadas para CNN con clasificación multiclase:
 
 - `miniproyecto3_pokemon.ipynb`: Notebook principal con todo el código
 - `best_pokemon_resnet50_feature_extraction.keras`: Modelo entrenado guardado (Feature Extraction)
-- `best_pokemon_resnet50_finetuned.keras`: Modelo fine-tuned
 - `README.md`: Este archivo con explicaciones detalladas
 
 ## Cómo ejecutar
@@ -39,7 +38,7 @@ El proyecto utiliza métricas apropiadas para CNN con clasificación multiclase:
 1. Instalar las dependencias necesarias (se instalan automáticamente en el notebook)
 2. Ejecutar las celdas del notebook en orden
 3. El modelo se entrenará y evaluará automáticamente
-4. Ejecutar la celda de Fine-Tuning para mejorar el modelo
+4. El mejor modelo se guardará automáticamente usando ModelCheckpoint
 
 ## Dataset
 
@@ -169,9 +168,11 @@ Esta capa se aplica dentro del modelo durante el entrenamiento.
 
 ---
 
-## Celda 13: Definición del modelo con Transfer Learning
+## Celda 13: Definición y construcción del modelo ResNet50
 
-Sigue el esquema de Transfer Learning:
+Esta celda explica el enfoque de Transfer Learning y la construcción del modelo.
+
+**Estrategia de Transfer Learning:**
 
 1. **Carga ResNet50** preentrenada en ImageNet sin la parte densa superior:
    - `include_top=False`
@@ -185,12 +186,12 @@ Sigue el esquema de Transfer Learning:
    - `Dense(num_classes, activation='softmax')`: clasifica en 15 Pokémon
 
 **Estrategia:**
-- Primero se entrena solo la cabeza (capas nuevas) con las capas convolucionales congeladas
-- Luego, opcionalmente, se puede hacer fine-tuning descongelando algunas capas superiores
+- Se entrena solo la cabeza (capas nuevas) con las capas convolucionales congeladas
+- Feature Extraction: las características aprendidas en ImageNet se reutilizan para Pokémon
 
 ---
 
-## Celda 15: Construcción del modelo ResNet50
+## Celda 14: Construcción del modelo ResNet50
 
 Construye el modelo completo con:
 
@@ -206,7 +207,7 @@ El modelo se llama `pokemon_resnet50` y muestra un resumen con `model.summary()`
 
 ---
 
-## Celda 16: Compilación y entrenamiento (Feature Extraction)
+## Celda 15: Compilación y entrenamiento
 
 **Compilación:**
 - Optimizador: Adam con learning rate 1e-3
@@ -215,17 +216,31 @@ El modelo se llama `pokemon_resnet50` y muestra un resumen con `model.summary()`
 
 **Callbacks:**
 - **EarlyStopping**: 
-  - Monitorea `val_top_3_accuracy`
-  - Patience de 5 épocas
+  - Monitorea `val_accuracy`
+  - Patience de 3 épocas
   - Restaura los mejores pesos al finalizar
 - **ModelCheckpoint**: 
   - Guarda el mejor modelo en `best_pokemon_resnet50_feature_extraction.keras`
-  - Solo guarda cuando mejora `val_top_3_accuracy`
+  - Solo guarda cuando mejora `val_accuracy`
 
 **Entrenamiento:**
-- Máximo 30 épocas (EarlyStopping puede parar antes)
+- Máximo 15 épocas (EarlyStopping puede parar antes si no hay mejora)
 - Solo se entrenan las capas nuevas (cabeza de clasificación)
-- Las capas de ResNet50 permanecen congeladas
+- Las capas de ResNet50 permanecen congeladas (Feature Extraction)
+
+---
+
+## Celda 17: Curvas de entrenamiento
+
+Gráficas de Accuracy y Loss durante el entrenamiento para:
+- Detectar overfitting (diferencia entre train y validation)
+- Verificar si el error se desborda
+- Analizar la evolución del modelo en entrenamiento vs validación
+
+**Análisis automático:**
+- Compara accuracy final de train vs validation
+- Compara loss final de train vs validation
+- Muestra advertencias si hay overfitting o desbordamiento de error
 
 ---
 
@@ -237,59 +252,49 @@ Carga el mejor modelo guardado por ModelCheckpoint desde el checkpoint.
 
 ---
 
-## Celda 19: Fine-Tuning
+## Celda 20: Evaluación del modelo - Top-K Accuracy
 
-Fine-tuning de las capas superiores de ResNet50 usando el mejor modelo guardado.
-
-**Proceso:**
-
-1. **Obtiene la base convolucional** dentro de `best_model`
-2. **Descongela solo las últimas 30 capas** de ResNet50 (aproximadamente el último bloque)
-3. **Recompila** con un learning rate más bajo (1e-5) para ajuste fino
-4. **Entrena** con callbacks similares (EarlyStopping y ModelCheckpoint)
-5. **Evalúa** el modelo afinado
-6. **Visualiza** las curvas de entrenamiento del fine-tuning
-
-**Ventajas del fine-tuning:**
-- Adapta las características aprendidas al dominio específico de Pokémon
-- Puede mejorar algunos puntos porcentuales la accuracy
-- Se hace de forma conservadora (solo últimas capas, LR bajo)
+Evalúa el modelo usando métricas de Top-K Accuracy (Top-1, Top-3, Top-5) porque son estándar en visión por computadora y permiten evaluar si la clase correcta está entre las K predicciones más probables.
 
 ---
 
-## Celda 22: Evaluación del modelo
+## Celda 21: Evaluación global y obtención de predicciones
 
-Evalúa el modelo usando métricas apropiadas para CNN con muchas clases:
-
-### Métricas principales:
-
-1. **Top-K Accuracy** (Top-3, Top-5): 
-   - Estándar en visión por computadora
-   - Mide si la clase correcta está entre las K predicciones más probables
-
-2. **Macro-averaged F1-score**: 
-   - Promedio no ponderado de F1 por clase
-   - Útil cuando hay desbalance entre clases
-
-3. **Micro-averaged F1-score**: 
-   - F1 calculado globalmente
-   - Equivalente a accuracy cuando hay balance
-
-4. **Balanced Accuracy**: 
-   - Promedio del recall por clase
-   - Mejor que accuracy cuando hay clases desbalanceadas
-
-### Proceso de evaluación:
-
-1. Evalúa el modelo en `val_ds` para obtener métricas
-2. Extrae predicciones y etiquetas verdaderas
-3. Calcula todas las métricas mencionadas
-4. Genera matriz de confusión (numérica y gráfica con heatmap)
-5. Genera reporte de clasificación por clase (precision, recall, F1)
+Obtiene las predicciones del modelo y las etiquetas verdaderas para cálculos posteriores.
 
 ---
 
-## Celda 22: Visualización de predicciones
+## Celda 22: Métricas adicionales - F1-score y Balanced Accuracy
+
+Calcula métricas adicionales apropiadas para CNN multiclase:
+- Macro y Micro F1-score para evaluar el desempeño considerando el desbalance de clases
+- Balanced Accuracy que es más robusta que accuracy cuando hay clases desbalanceadas
+
+---
+
+## Celda 24: Matriz de confusión
+
+La matriz de confusión muestra los errores de clasificación por clase, permitiendo identificar qué Pokémon se confunden entre sí. Se muestra tanto en valores absolutos como normalizada (porcentajes).
+
+---
+
+## Celda 26: Classification Report
+
+El reporte de clasificación muestra precision, recall y F1-score por clase, permitiendo un análisis detallado del desempeño del modelo para cada Pokémon.
+
+---
+
+## Celda 28: Curvas ROC y AUC
+
+Las curvas ROC (Receiver Operating Characteristic) y el área bajo la curva (AUC) permiten evaluar el desempeño del modelo en clasificación multiclase usando el enfoque One-vs-Rest. El AUC mide la capacidad del modelo para distinguir entre clases, siendo 1.0 el valor perfecto.
+
+---
+
+## Celda 30: Visualización de predicciones
+
+Esta celda explica el propósito de la visualización de predicciones.
+
+## Celda 31: Visualización de predicciones vs etiquetas reales
 
 Muestra una cuadrícula de 3×3 con imágenes del conjunto de validación junto con:
 - **Predicción del modelo**: Nombre del Pokémon predicho
@@ -306,20 +311,28 @@ Permite identificar visualmente:
 
 ---
 
-## Celda 26: Conclusiones
+## Conclusiones
 
 Resumen del mini proyecto:
 
 - Se aplicaron conceptos de Redes Neuronales Artificiales profundas y CNN
 - Se utilizó Transfer Learning con ResNet50 preentrenada en ImageNet
 - Se aplicó Data Augmentation para aumentar la robustez
-- Se entrenó en esquema de Feature Extraction y Fine-Tuning
-- Se evaluó con métricas apropiadas para CNN multiclase
+- Se entrenó en esquema de Feature Extraction
+- Se evaluó con métricas apropiadas para CNN multiclase:
+  - Top-K Accuracy (Top-1, Top-3, Top-5)
+  - Macro y Micro F1-score
+  - Balanced Accuracy
+  - Matriz de confusión (normalizada)
+  - Classification Report
+  - Curvas ROC y AUC
 
 **Objetivos cumplidos:**
 - Implementar clasificación supervisada multiclase usando RNA
 - Justificar el uso de CNN y Transfer Learning
 - Demostrar el proceso completo: carga de datos, preprocesamiento, diseño del modelo, entrenamiento, evaluación y análisis
+- Visualizar curvas de entrenamiento para detectar overfitting
+- Generar visualizaciones completas de evaluación (matriz de confusión, ROC-AUC)
 
 ---
 
